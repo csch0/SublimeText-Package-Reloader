@@ -23,7 +23,9 @@ class PackageReloaderListener(sublime_plugin.EventListener):
 			try:
 				with open(os.path.join(package_dir, ".build"), "r", encoding = "utf-8") as f:
 					file_json = sublime.decode_value(f.read())
-					if "type" not in file_json or "mods_load_order" not in file_json:
+					if not file_json:
+						file_json = {"type": "reverse", "mods_load_order": []}
+					elif "type" not in file_json or "mods_load_order" not in file_json:
 						raise ValueError
 			except ValueError as e:
 				print("Invalid .build format")
