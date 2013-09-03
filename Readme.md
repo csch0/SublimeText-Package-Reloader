@@ -13,10 +13,10 @@ To enable the reload of a certain package you have to place an empty *.build* fi
 			"File Navigator.File Navigator",
 			"File Navigator"
 		],
-		"type": "reverse"
+		"manual_order": false
 	}
 
-The **type** can be reverse or custom, if you are using reverse the order will be automatically arranged every time you are adding a new source file. If you are using custom, the new item will be just add the end of the list. If you for example need to load *File Navigator.File Navigator* before *File Navigator.Tools* change the *.build* like this:
+The **automatic_order** can true or false, if you are using true the order will be automatically arranged every time you are adding a new source file in inverse order. If you are using false, the new item will be just add the end of the list. If you for example need to load *File Navigator.File Navigator* before *File Navigator.Tools* change the *.build* like this:
 
 	{
 		"mods_load_order":
@@ -25,7 +25,7 @@ The **type** can be reverse or custom, if you are using reverse the order will b
 			"File Navigator.Tools",
 			"File Navigator"
 		],
-		"type": "custom"
+		"manual_order": true
 	}
 
 ## Installation

@@ -15,8 +15,6 @@ class PackageReloaderListener(sublime_plugin.EventListener):
 		package_name = os.path.relpath(view.file_name(), sublime.packages_path()).split(os.sep, 1)[0]
 		package_dir = os.path.join(sublime.packages_path(), package_name)
 
-		print(package_dir, package_name)
-
 		# Check for .build
 		if os.path.isfile(os.path.join(package_dir, ".build")):
 
@@ -24,24 +22,21 @@ class PackageReloaderListener(sublime_plugin.EventListener):
 				with open(os.path.join(package_dir, ".build"), "r", encoding = "utf-8") as f:
 					file_json = sublime.decode_value(f.read())
 					if not file_json:
-						file_json = {"type": "reverse", "mods_load_order": []}
-					elif "type" not in file_json or "mods_load_order" not in file_json:
+						file_json = {"automatic_order": True, "mods_load_order": []}
+					elif "automatic_order" not in file_json or "mods_load_order" not in file_json:
 						raise ValueError
 			except ValueError as e:
 				print("Invalid .build format")
 				return
 
-			# Clean non existing items
-			items = [item for item in file_json["mods_load_order"] if item == package_name or os.path.isfile(os.path.join(sublime.packages_path(), item.replace(".", os.sep) + ".py"))]
-
 			# Add source files, this is basically to check for new files and add them to the build
-			items = [item for item in file_json["mods_load_order"]]
+			items = [item for item in file_json["mods_load_order"] if item == package_name or os.path.isfile(os.path.join(sublime.packages_path(), item.replace(".", os.sep) + ".py"))]
 			for item in source_files(package_dir):
 				if item not in items:
 					items += [item]
 
 			# Write load order back to file_json
-			if file_json["type"] == "reverse":
+			if file_json["automatic_order"]:
 				file_json["mods_load_order"] = sorted(items, reverse = True)
 			else:
 				file_json["mods_load_order"] = items
