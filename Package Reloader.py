@@ -1,5 +1,11 @@
 import sublime, sublime_plugin
+
 import imp, sys, os
+
+try:
+	from .package_reloader.tools import load_resource, save_resource, decode_value, encode_value, source_files
+except ValueError:
+	from package_reloader.tools import load_resource, save_resource, decode_value, encode_value, source_files
 
 class PackageReloaderListener(sublime_plugin.EventListener):
 
@@ -19,40 +25,51 @@ class PackageReloaderListener(sublime_plugin.EventListener):
 		if os.path.isfile(os.path.join(package_dir, ".build")):
 
 			try:
-				with open(os.path.join(package_dir, ".build"), "r", encoding = "utf-8") as f:
-					file_json = sublime.decode_value(f.read())
-					if not file_json:
-						file_json = {"automatic_order": True, "mods_load_order": []}
-					elif "automatic_order" not in file_json or "mods_load_order" not in file_json:
-						raise ValueError
-			except ValueError as e:
+				file_json = decode_value(load_resource("Packages/%s/.build" % package_name))
+
+				# Check for empty .build
+				if not file_json:
+					file_json = {"automatic_order": True, "mods_load_order": []}
+
+				# Checkf if .build is valid
+				elif "automatic_order" not in file_json or "mods_load_order" not in file_json:
+					raise IOError
+
+			except (OSError, IOError, ValueError):
 				print("Invalid .build format")
 				return
 
 			# Add source files, this is basically to check for new files and add them to the build
-			items = [item for item in file_json["mods_load_order"] if item == package_name or os.path.isfile(os.path.join(sublime.packages_path(), item.replace(".", os.sep) + ".py"))]
+			items = [item for item in file_json["mods_load_order"] if os.path.isfile(os.path.join(package_dir, item.replace("/", os.sep)))]
+
 			for item in source_files(package_dir):
 				if item not in items:
 					items += [item]
 
 			# Write load order back to file_json
 			if file_json["automatic_order"]:
-				file_json["mods_load_order"] = sorted(items, reverse = True)
-			else:
-				file_json["mods_load_order"] = items
+				items = sorted(items, reverse = True)
 
-			with open(os.path.join(package_dir, ".build"), "w", encoding = "utf-8") as f:
-				f.write(sublime.encode_value(file_json, True))
+			file_json["mods_load_order"] = items
 
-			modules = []
-			for mod in file_json["mods_load_order"]:
-				if mod in sys.modules and sys.modules[mod]:
-					print (">>> reload", mod)
-					imp.reload(sys.modules[mod])
+			# Save resource
+			save_resource("Packages/%s/.build" % package_name, encode_value(file_json, True))
 
+			# change working dictionary to reload modules
+			cwd = os.getcwd()
+			os.chdir(package_dir)
 
-def source_files(package_dir):
-	items = [os.path.basename(package_dir)]
-	for root, dir_names, file_names in os.walk(package_dir):
-		items += [os.path.relpath(os.path.join(root, file_name), sublime.packages_path()).replace(os.sep, ".")[:-3] for file_name in file_names if file_name[-3:] == ".py"]
-	return items
+			# Prefix is just required on ST3
+			prefix = "%s." % package_name if sublime.version()[0] == "3" else ""
+
+			# Add current changed file
+			for item in [os.path.relpath(view.file_name(), package_dir)] + file_json["mods_load_order"]:
+				mod_name = prefix + (item.replace("/", ".")[:-3] if item[-11:] != "__init__.py" else item.replace("/", ".")[:-12])
+
+				# Check of mod_name available and not none
+				if mod_name in sys.modules and sys.modules[mod_name]:
+					print (">>> reload", mod_name)
+					imp.reload(sys.modules[mod_name])
+
+			# Change working dictionary back
+			os.chdir(cwd)
