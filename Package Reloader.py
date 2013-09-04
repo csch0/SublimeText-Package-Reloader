@@ -29,10 +29,10 @@ class PackageReloaderListener(sublime_plugin.EventListener):
 
 				# Check for empty .build
 				if not file_json:
-					file_json = {"automatic_order": True, "mods_load_order": []}
+					file_json = {"automatic_order": True, "iterations": 1, "mods_load_order": []}
 
 				# Checkf if .build is valid
-				elif "automatic_order" not in file_json or "mods_load_order" not in file_json:
+				elif any([item not in file_json for item in ["automatic_order", "iterations", "mods_load_order"]]):
 					raise IOError
 
 			except (OSError, IOError, ValueError):
@@ -48,7 +48,7 @@ class PackageReloaderListener(sublime_plugin.EventListener):
 
 			# Write load order back to file_json
 			if file_json["automatic_order"]:
-				items = sorted(items, reverse = True)
+				items = sorted(items, reverse = False)
 
 			file_json["mods_load_order"] = items
 
@@ -60,16 +60,26 @@ class PackageReloaderListener(sublime_plugin.EventListener):
 			os.chdir(package_dir)
 
 			# Prefix is just required on ST3
-			prefix = "%s." % package_name if sublime.version()[0] == "3" else ""
+			prefix = package_name + "." if sublime.version()[0] == "3" else ""
 
-			# Add current changed file
-			for item in [os.path.relpath(view.file_name(), package_dir)] + file_json["mods_load_order"]:
-				mod_name = prefix + (item.replace("/", ".")[:-3] if item[-11:] != "__init__.py" else item.replace("/", ".")[:-12])
+			# Reload current saved module first
+			item = os.path.relpath(view.file_name(), package_dir)
+			mod_name = prefix + item.replace(os.sep, ".")[:-3]
+			if os.path.dirname(item) and mod_name and mod_name in sys.modules and sys.modules[mod_name]:
+				print ("reloading plugin", mod_name)
+				imp.reload(sys.modules[mod_name])
 
-				# Check of mod_name available and not none
-				if mod_name in sys.modules and sys.modules[mod_name]:
-					print (">>> reload", mod_name)
-					imp.reload(sys.modules[mod_name])
+			# perform multiple iterations if requested
+			for i in range(file_json["iterations"]):
+
+				# Load modules
+				for item in file_json["mods_load_order"]:
+					mod_name = prefix + (item.replace("/", ".")[:-3] if item[-11:] != "__init__.py" else item.replace("/", ".")[:-12])
+
+					# Check of mod_name available and not none
+					if mod_name in sys.modules and sys.modules[mod_name]:
+						print ("reloading plugin", mod_name)
+						imp.reload(sys.modules[mod_name])
 
 			# Change working dictionary back
 			os.chdir(cwd)
