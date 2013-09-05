@@ -1,6 +1,8 @@
 import sublime, sublime_plugin
 
-import imp, sys, os
+import imp, logging, os, sys
+logging.basicConfig(level = logging.INFO, format="[%(asctime)s - %(levelname)s - %(name)s] %(message)s")
+logger = logging.getLogger(__name__)
 
 try:
 	from .package_reloader.tools import load_resource, save_resource, decode_value, encode_value, source_files
@@ -36,7 +38,7 @@ class PackageReloaderListener(sublime_plugin.EventListener):
 					raise IOError
 
 			except (OSError, IOError, ValueError):
-				print("Invalid .build format")
+				logger.warning("Invalid .build format")
 				return
 
 			# Add source files, this is basically to check for new files and add them to the build
@@ -66,7 +68,7 @@ class PackageReloaderListener(sublime_plugin.EventListener):
 			item = os.path.relpath(view.file_name(), package_dir)
 			mod_name = prefix + item.replace(os.sep, ".")[:-3]
 			if os.path.dirname(item) and mod_name and mod_name in sys.modules and sys.modules[mod_name]:
-				print ("reloading plugin", mod_name)
+				logger.info("reloading plugin %s",  mod_name)
 				imp.reload(sys.modules[mod_name])
 
 			# perform multiple iterations if requested
@@ -78,7 +80,7 @@ class PackageReloaderListener(sublime_plugin.EventListener):
 
 					# Check of mod_name available and not none
 					if mod_name in sys.modules and sys.modules[mod_name]:
-						print ("reloading plugin", mod_name)
+						logger.info("reloading plugin %s",  mod_name)
 						imp.reload(sys.modules[mod_name])
 
 			# Change working dictionary back
