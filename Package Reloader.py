@@ -37,7 +37,7 @@ class PackageReloaderListener(sublime_plugin.EventListener):
 				elif any([item not in file_json for item in ["automatic_order", "iterations", "mods_load_order"]]):
 					raise IOError
 
-			except (OSError, IOError, ValueError):
+			except (OSError, IOError, ValueError) as e:
 				logger.warning("Invalid .build format")
 				return
 

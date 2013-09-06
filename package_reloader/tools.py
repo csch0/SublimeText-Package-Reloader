@@ -21,7 +21,11 @@ def decode_value(string):
 		return sublime.decode_value(string)
 	else:
 		lines = [line for line in string.split("\n") if not re.search(r'//.*', line)]
-		return json.loads("\n".join(lines))
+		string = "\n".join(lines)
+		if string:
+			return json.loads(string)
+		else:
+			return None
 
 def encode_value(value, pretty = False):
 	if hasattr(sublime, 'encode_value'):

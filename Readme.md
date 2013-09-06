@@ -24,9 +24,9 @@ The **automatic_order** can true or false, if you are using true the order will 
 		"iterations": 1,
 		"mods_load_order":
 		[
+			"file_navigator/tools.py",
 			"File Navigator.py",
-			"file_navigator/__init__.py",
-			"file_navigator/tools.py"
+			"file_navigator/__init__.py"
 		]
 	}
 
