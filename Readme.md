@@ -45,7 +45,7 @@ The **automatic_order** can true or false, if you are using true the order will 
 
 ## Donating
 
-Support this project and [others by chris][gittip] via [gittip][] or [paypal][].
+Support this project via [gittip][] or [paypal][].
 
 [![Support via Gittip](https://rawgithub.com/chris---/Donation-Badges/master/gittip.jpeg)][gittip]
 [![Support via PayPal](https://rawgithub.com/chris---/Donation-Badges/master/paypal.jpeg)][paypal]
