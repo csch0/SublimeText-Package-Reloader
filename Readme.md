@@ -1,31 +1,33 @@
 # Package Reloader
 
-A simple reloader to manage the reload process while developing your own plugin for Sublime Text.
+A simple reloader to manage the reload process of dependency modules in Sublime Text. The package reloads changes of a class while developing a plugin on the fly without restarting Sublime Text.
 
 ## Usage
 
-To enable the reload of a certain package you have to place an empty *.build* file inside the package directory. You do not have to fill the file by yourself, you can just adjust the **mods_load_order**. Package Reloader will fill this file automatically, after the first run it could look like this:
+To enable the reload of a certain package you just have to place an empty *.build* file inside the package directory. You do not have to fill the file by yourself, just save a file inside the plugin and Package Reloader will fill all the basic informations. You can adjust the loading order with **mods_load_order** after the first run. After the first run (save of a file in that project) `.build` could look like this:
 
 	{
+		"automatic_order": true,
+		"iterations": 1,
 		"mods_load_order":
 		[
-			"File Navigator.Tools",
-			"File Navigator.File Navigator",
-			"File Navigator"
-		],
-		"manual_order": false
+			"File Navigator.py",
+			"file_navigator/__init__.py",
+			"file_navigator/tools.py"
+		]
 	}
 
-The **automatic_order** can true or false, if you are using true the order will be automatically arranged every time you are adding a new source file in inverse order. If you are using false, the new item will be just add the end of the list. If you for example need to load *File Navigator.File Navigator* before *File Navigator.Tools* change the *.build* like this:
+The **automatic_order** can true or false, if you are using true the order will be automatically arranged every time you are adding a new source file. If you are using false, the new item will be just add the end of the list and you can change that on your own. If you for example need to load the *file_navigator/tools.py* before *File Navigator.py* just change the *.build* like this:
 
 	{
+		"automatic_order": false,
+		"iterations": 1,
 		"mods_load_order":
 		[
-			"File Navigator.File Navigator",
-			"File Navigator.Tools",
-			"File Navigator"
-		],
-		"manual_order": true
+			"File Navigator.py",
+			"file_navigator/__init__.py",
+			"file_navigator/tools.py"
+		]
 	}
 
 ## Installation
@@ -47,8 +49,7 @@ The **automatic_order** can true or false, if you are using true the order will 
 
 Support this project via [gittip][] or [paypal][].
 
-[![Support via Gittip](https://rawgithub.com/chris---/Donation-Badges/master/gittip.jpeg)][gittip]
-[![Support via PayPal](https://rawgithub.com/chris---/Donation-Badges/master/paypal.jpeg)][paypal]
+[![Support via Gittip](https://rawgithub.com/chris---/Donation-Badges/master/gittip.jpeg)][gittip] [![Support via PayPal](https://rawgithub.com/chris---/Donation-Badges/master/paypal.jpeg)][paypal]
 
 [gittip]: https://www.gittip.com/Chris---
 [paypal]: https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=ZWZCJPFSZNXEW
