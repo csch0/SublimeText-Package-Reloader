@@ -1,13 +1,11 @@
 import sublime, sublime_plugin
 
-import imp, logging, os, sys
-logging.basicConfig(level = logging.INFO, format="[%(asctime)s - %(levelname)s - %(name)s] %(message)s")
-logger = logging.getLogger(__name__)
+import os
 
 try:
-	from .package_reloader.tools import load_resource, save_resource, decode_value, encode_value, source_files
+	from .package_reloader import tools
 except ValueError:
-	from package_reloader.tools import load_resource, save_resource, decode_value, encode_value, source_files
+	from package_reloader import tools
 
 class PackageReloaderListener(sublime_plugin.EventListener):
 
@@ -27,7 +25,7 @@ class PackageReloaderListener(sublime_plugin.EventListener):
 		if os.path.isfile(os.path.join(package_dir, ".build")):
 
 			try:
-				file_json = decode_value(load_resource("Packages/%s/.build" % package_name))
+				file_json = tools.decode_value(tools.load_resource("Packages/%s/.build" % package_name))
 
 				# Check for empty .build
 				if not file_json:
@@ -44,7 +42,7 @@ class PackageReloaderListener(sublime_plugin.EventListener):
 			# Add source files, this is basically to check for new files and add them to the build
 			items = [item for item in file_json["mods_load_order"] if os.path.isfile(os.path.join(package_dir, item.replace("/", os.sep)))]
 
-			for item in source_files(package_dir):
+			for item in tools.source_files(package_dir):
 				if item not in items:
 					items += [item]
 
@@ -55,33 +53,22 @@ class PackageReloaderListener(sublime_plugin.EventListener):
 			file_json["mods_load_order"] = items
 
 			# Save resource
-			save_resource("Packages/%s/.build" % package_name, encode_value(file_json, True))
-
-			# change working dictionary to reload modules
-			cwd = os.getcwd()
-			os.chdir(package_dir)
+			tools.save_resource("Packages/%s/.build" % package_name, tools.encode_value(file_json, True))
 
 			# Prefix is just required on ST3
 			prefix = package_name + "." if sublime.version()[0] == "3" else ""
 
-			# Reload current saved module first
-			item = os.path.relpath(view.file_name(), package_dir)
-			mod_name = prefix + item.replace(os.sep, ".")[:-3]
-			if os.path.dirname(item) and mod_name and mod_name in sys.modules and sys.modules[mod_name]:
-				logger.info("reloading plugin %s",  mod_name)
-				imp.reload(sys.modules[mod_name])
+			print("Package Reloader - Reloading %s" % package_name)
 
 			# perform multiple iterations if requested
 			for i in range(file_json["iterations"]):
 
 				# Load modules
 				for item in file_json["mods_load_order"]:
-					mod_name = prefix + (item.replace("/", ".")[:-3] if item[-11:] != "__init__.py" else item.replace("/", ".")[:-12])
+					if sublime.version()[0] == "3":
+						mod_name = package_name + "." + (item.replace("/", ".")[:-3] if item[-11:] != "__init__.py" else item.replace("/", ".")[:-12])
+					else:
+						mod_name = os.path.join(package_dir, item)
 
-					# Check of mod_name available and not none
-					if mod_name in sys.modules and sys.modules[mod_name]:
-						logger.info("reloading plugin %s",  mod_name)
-						imp.reload(sys.modules[mod_name])
-
-			# Change working dictionary back
-			os.chdir(cwd)
+					# Reload all packages
+					sublime_plugin.reload_plugin(mod_name)
