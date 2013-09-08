@@ -55,8 +55,14 @@ class PackageReloaderListener(sublime_plugin.EventListener):
 			# Save resource
 			tools.save_resource("Packages/%s/.build" % package_name, tools.encode_value(file_json, True))
 
-			# Prefix is just required on ST3
-			prefix = package_name + "." if sublime.version()[0] == "3" else ""
+			# Reload current saved module first if file is not tracked by Sublime Text
+			item = os.path.relpath(view.file_name(), package_dir)
+			if os.path.dirname(item):
+				if sublime.version()[0] == "3":
+					mod_name = package_name + "." + (item.replace("/", ".")[:-3] if item[-11:] != "__init__.py" else item.replace("/", ".")[:-12])
+				else:
+					mod_name = os.path.join(package_dir, item)
+				sublime_plugin.reload_plugin(mod_name)
 
 			print("Package Reloader - Reloading %s" % package_name)
 
@@ -70,5 +76,5 @@ class PackageReloaderListener(sublime_plugin.EventListener):
 					else:
 						mod_name = os.path.join(package_dir, item)
 
-					# Reload all packages
+					# Reload plugin
 					sublime_plugin.reload_plugin(mod_name)
