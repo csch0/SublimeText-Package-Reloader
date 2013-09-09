@@ -59,7 +59,7 @@ class PackageReloaderListener(sublime_plugin.EventListener):
 			item = os.path.relpath(view.file_name(), package_dir)
 			if os.path.dirname(item):
 				if sublime.version()[0] == "3":
-					mod_name = package_name + "." + (item.replace("/", ".")[:-3] if item[-11:] != "__init__.py" else item.replace("/", ".")[:-12])
+					mod_name = package_name + "." + (item.replace(os.sep, ".")[:-3] if item[-11:] != "__init__.py" else item.replace(os.sep, ".")[:-12])
 				else:
 					mod_name = os.path.join(package_dir, item)
 				sublime_plugin.reload_plugin(mod_name)
