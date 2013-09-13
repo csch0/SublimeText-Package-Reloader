@@ -12,11 +12,7 @@ class PackageReloaderListener(sublime_plugin.EventListener):
 	def on_post_save(self, view):
 		if not view.match_selector(0, "source.python"):
 			return []
-
-		sublime.set_timeout(lambda: self.__on_post_save(view), 500)
-
-	def __on_post_save(self, view):
-
+	
 		# Extract Package Name
 		package_name = os.path.relpath(view.file_name(), sublime.packages_path()).split(os.sep, 1)[0]
 		package_dir = os.path.join(sublime.packages_path(), package_name)
@@ -48,33 +44,40 @@ class PackageReloaderListener(sublime_plugin.EventListener):
 
 			# Write load order back to file_json
 			if file_json["automatic_order"]:
-				items = sorted(items, reverse = False)
+				items = sorted(items, reverse = True)
 
 			file_json["mods_load_order"] = items
 
 			# Save resource
 			tools.save_resource("Packages/%s/.build" % package_name, tools.encode_value(file_json, True))
 
-			# Reload current saved module first if file is not tracked by Sublime Text
-			item = os.path.relpath(view.file_name(), package_dir)
-			if os.path.dirname(item):
-				if sublime.version()[0] == "3":
-					mod_name = package_name + "." + (item.replace(os.sep, ".")[:-3] if item[-11:] != "__init__.py" else item.replace(os.sep, ".")[:-12])
-				else:
-					mod_name = os.path.join(package_dir, item)
-				sublime_plugin.reload_plugin(mod_name)
+			# Wait fot the current file to reload
+			sublime.set_timeout(lambda: sublime.run_command("package_reloader", {"package_name": package_name, "source": os.path.relpath(view.file_name(), package_dir), "items": items}), 500)
 
-			print("Package Reloader - Reloading %s" % package_name)
+class PackageReloaderCommand(sublime_plugin.ApplicationCommand):
 
-			# perform multiple iterations if requested
-			for i in range(file_json["iterations"]):
+	def run(self, package_name, source, items):
 
-				# Load modules
-				for item in file_json["mods_load_order"]:
-					if sublime.version()[0] == "3":
-						mod_name = package_name + "." + (item.replace("/", ".")[:-3] if item[-11:] != "__init__.py" else item.replace("/", ".")[:-12])
-					else:
-						mod_name = os.path.join(package_dir, item)
+		if os.path.dirname(source):
+			if sublime.version()[0] == "3":
+				mod_name = package_name + "." + (source.replace(os.sep, ".")[:-3] if source[-11:] != "__init__.py" else source.replace(os.sep, ".")[:-12])
+			else:
+				mod_name = os.path.join(package_dir, source)
+			sublime_plugin.reload_plugin(mod_name)
+		
+		print("Package Reloader - Reloading %s" % package_name)
+		
+		# Load modules
+		for item in items:
+			if sublime.version()[0] == "3":
+				mod_name = package_name + "." + (item.replace("/", ".")[:-3] if item[-11:] != "__init__.py" else item.replace("/", ".")[:-12])
+				mod_name = package_name + "." + item.replace("/", ".")[:-3]
+			else:
+				mod_name = os.path.join(package_dir, item)
+			
+			# Reload module
+			sublime_plugin.reload_plugin(mod_name)
 
-					# Reload plugin
-					sublime_plugin.reload_plugin(mod_name)
+			# If __init__ also reload folder
+			if mod_name[-8:] == "__init__":
+				sublime_plugin.reload_plugin(mod_name[:-9])
