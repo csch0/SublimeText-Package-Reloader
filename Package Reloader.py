@@ -1,6 +1,6 @@
 import sublime, sublime_plugin
 
-import os
+import os, imp, sys
 
 try:
 	from .package_reloader import tools
@@ -52,18 +52,24 @@ class PackageReloaderListener(sublime_plugin.EventListener):
 			tools.save_resource("Packages/%s/.build" % package_name, tools.encode_value(file_json, True))
 
 			# Wait fot the current file to reload
-			sublime.set_timeout(lambda: sublime.run_command("package_reloader", {"package_name": package_name, "source": os.path.relpath(view.file_name(), package_dir), "items": items}), 500)
+			sublime.run_command("package_reloader", {"package_name": package_name, "source": os.path.relpath(view.file_name(), package_dir), "items": items})
 
 class PackageReloaderCommand(sublime_plugin.ApplicationCommand):
 
 	def run(self, package_name, source, items):
 
-		if os.path.dirname(source):
-			if sublime.version()[0] == "3":
-				mod_name = package_name + "." + (source.replace(os.sep, ".")[:-3] if source[-11:] != "__init__.py" else source.replace(os.sep, ".")[:-12])
-			else:
-				mod_name = os.path.join(package_dir, source)
-			sublime_plugin.reload_plugin(mod_name)
+		# print(package_name)
+		# print(source)
+		# print(items)
+
+		# if os.path.dirname(source):
+		if sublime.version()[0] == "3":
+			mod_name = package_name + "." + (source.replace(os.sep, ".")[:-3] if source[-11:] != "__init__.py" else source.replace(os.sep, ".")[:-12])
+		else:
+			mod_name = os.path.join(package_dir, source)
+		sublime_plugin.reload_plugin(mod_name)
+		# 
+		items.remove(source)
 		
 		print("Package Reloader - Reloading %s" % package_name)
 		
@@ -71,13 +77,14 @@ class PackageReloaderCommand(sublime_plugin.ApplicationCommand):
 		for item in items:
 			if sublime.version()[0] == "3":
 				mod_name = package_name + "." + (item.replace("/", ".")[:-3] if item[-11:] != "__init__.py" else item.replace("/", ".")[:-12])
-				mod_name = package_name + "." + item.replace("/", ".")[:-3]
 			else:
 				mod_name = os.path.join(package_dir, item)
 			
-			# Reload module
-			sublime_plugin.reload_plugin(mod_name)
-
-			# If __init__ also reload folder
-			if mod_name[-8:] == "__init__":
-				sublime_plugin.reload_plugin(mod_name[:-9])
+			if os.path.dirname(item):
+				if mod_name in sys.modules:
+					imp.reload(sys.modules[mod_name])
+					print("reload", mod_name)
+			else:
+				# Reload module
+				sublime_plugin.reload_plugin(mod_name)
+			# sublime_plugin.reload_plugin(mod_name)
