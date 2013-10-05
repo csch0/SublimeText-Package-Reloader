@@ -65,15 +65,7 @@ class PackageReloaderCommand(sublime_plugin.ApplicationCommand):
 			else:
 				modulename = os.path.join(package_dir, source)
 
-			print(modulename)
-
-			# # Remove callbacks from subdirs before reloading the whole plugin
-			for key, value in sublime_plugin.all_callbacks.items():
-				for item in value:
-					if item.__module__ == modulename:
-						sublime_plugin.all_callbacks[key].remove(item)
-			
-			# Reload callbacks for file
+			# Reload the file
 			sublime_plugin.reload_plugin(modulename)
 		
 		print("Package Reloader - Reloading %s" % package_name)
@@ -85,10 +77,17 @@ class PackageReloaderCommand(sublime_plugin.ApplicationCommand):
 			else:
 				modulename = os.path.join(package_dir, item)
 			
-			# Reload module
-			if modulename in sys.modules:
-				print("reloading plugin", modulename)
-				module = sys.modules[modulename]
-				imp.reload(module)
-			else:
-				sublime_plugin.reload_plugin(modulename)
+			sublime_plugin.reload_plugin(modulename)
+
+		# Clean up multiple callbacks
+		for key, value in sublime_plugin.all_callbacks.items():
+			items = {}
+			for item in value:
+				name = item.__module__ + '.' + item.__class__.__name__	
+				# Save item connected with the name
+				if name in items:
+					items[name] += [item]
+				else:
+					items[name] = [item]
+
+			sublime_plugin.all_callbacks[key] = [value[0] for key, value in items.items()]
