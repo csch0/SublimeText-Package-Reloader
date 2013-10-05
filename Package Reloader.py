@@ -1,6 +1,6 @@
 import sublime, sublime_plugin
 
-import os
+import imp, os, sys
 
 try:
 	from .package_reloader import tools
@@ -58,26 +58,37 @@ class PackageReloaderCommand(sublime_plugin.ApplicationCommand):
 
 	def run(self, package_name, source, items):
 
+		# Reload current file first if not in root dir
 		if os.path.dirname(source):
 			if sublime.version()[0] == "3":
-				mod_name = package_name + "." + (source.replace(os.sep, ".")[:-3] if source[-11:] != "__init__.py" else source.replace(os.sep, ".")[:-12])
+				modulename = package_name + "." + (source.replace(os.sep, ".")[:-3] if source[-11:] != "__init__.py" else source.replace(os.sep, ".")[:-12])
 			else:
-				mod_name = os.path.join(package_dir, source)
-			sublime_plugin.reload_plugin(mod_name)
+				modulename = os.path.join(package_dir, source)
+
+			print(modulename)
+
+			# # Remove callbacks from subdirs before reloading the whole plugin
+			for key, value in sublime_plugin.all_callbacks.items():
+				for item in value:
+					if item.__module__ == modulename:
+						sublime_plugin.all_callbacks[key].remove(item)
+			
+			# Reload callbacks for file
+			sublime_plugin.reload_plugin(modulename)
 		
 		print("Package Reloader - Reloading %s" % package_name)
 		
 		# Load modules
 		for item in items:
 			if sublime.version()[0] == "3":
-				mod_name = package_name + "." + (item.replace("/", ".")[:-3] if item[-11:] != "__init__.py" else item.replace("/", ".")[:-12])
-				mod_name = package_name + "." + item.replace("/", ".")[:-3]
+				modulename = package_name + "." + (item.replace("/", ".")[:-3] if item[-11:] != "__init__.py" else item.replace("/", ".")[:-12])
 			else:
-				mod_name = os.path.join(package_dir, item)
+				modulename = os.path.join(package_dir, item)
 			
 			# Reload module
-			sublime_plugin.reload_plugin(mod_name)
-
-			# If __init__ also reload folder
-			if mod_name[-8:] == "__init__":
-				sublime_plugin.reload_plugin(mod_name[:-9])
+			if modulename in sys.modules:
+				print("reloading plugin", modulename)
+				module = sys.modules[modulename]
+				imp.reload(module)
+			else:
+				sublime_plugin.reload_plugin(modulename)
