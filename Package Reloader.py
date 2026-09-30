@@ -32,7 +32,7 @@ class PackageReloaderListener(sublime_plugin.EventListener):
 					raise IOError
 
 			except (OSError, IOError, ValueError) as e:
-				logger.warning("Invalid .build format")
+				print("Package Reloader - Invalid .build format")
 				return
 
 			# Add source files, this is basically to check for new files and add them to the build
@@ -57,6 +57,8 @@ class PackageReloaderListener(sublime_plugin.EventListener):
 class PackageReloaderCommand(sublime_plugin.ApplicationCommand):
 
 	def run(self, package_name, source, items):
+		package_dir = os.path.join(sublime.packages_path(), package_name)
+
 
 		# Reload current file first if not in root dir
 		if os.path.dirname(source):
